@@ -1,12 +1,19 @@
 -- 1. Verify import matches known dataset size (6,362,620 rows)
 SELECT COUNT(*) FROM PS;
 
--- 2. Check nulls across key columns in one pass
-SELECT 
-  SUM(CASE WHEN amount IS NULL THEN 1 ELSE 0 END) AS null_amount,
+-- 2. Check nulls across all 11 columns in one pass
+SELECT
+  SUM(CASE WHEN step IS NULL THEN 1 ELSE 0 END) AS null_step,
   SUM(CASE WHEN type IS NULL THEN 1 ELSE 0 END) AS null_type,
+  SUM(CASE WHEN amount IS NULL THEN 1 ELSE 0 END) AS null_amount,
+  SUM(CASE WHEN nameOrig IS NULL THEN 1 ELSE 0 END) AS null_nameOrig,
   SUM(CASE WHEN oldbalanceOrg IS NULL THEN 1 ELSE 0 END) AS null_oldbalanceOrg,
-  SUM(CASE WHEN newbalanceOrig IS NULL THEN 1 ELSE 0 END) AS null_newbalanceOrig
+  SUM(CASE WHEN newbalanceOrig IS NULL THEN 1 ELSE 0 END) AS null_newbalanceOrig,
+  SUM(CASE WHEN nameDest IS NULL THEN 1 ELSE 0 END) AS null_nameDest,
+  SUM(CASE WHEN oldbalanceDest IS NULL THEN 1 ELSE 0 END) AS null_oldbalanceDest,
+  SUM(CASE WHEN newbalanceDest IS NULL THEN 1 ELSE 0 END) AS null_newbalanceDest,
+  SUM(CASE WHEN isFraud IS NULL THEN 1 ELSE 0 END) AS null_isFraud,
+  SUM(CASE WHEN isFlaggedFraud IS NULL THEN 1 ELSE 0 END) AS null_isFlaggedFraud
 FROM PS;
 
 -- 3. Check for unexpected category values
@@ -29,8 +36,15 @@ SELECT isFraud, COUNT(*) AS total
 FROM PS
 GROUP BY isFraud;
 
--- PaySim also has a second flag column — how many did the system itself catch?
+-- PaySim also has a second flag column - how many did the system itself catch?
 SELECT isFlaggedFraud, COUNT(*) AS total
+FROM PS
+GROUP BY isFlaggedFraud;
+
+-- How good is the built-in flag? (precision and recall)
+SELECT isFlaggedFraud,
+       COUNT(*) AS total_rows,
+       SUM(CASE WHEN isFraud = 1 THEN 1 ELSE 0 END) AS fraud_count
 FROM PS
 GROUP BY isFlaggedFraud;
 
