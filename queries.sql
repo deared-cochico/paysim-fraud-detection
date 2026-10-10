@@ -1,3 +1,6 @@
+-- PaySim fraud analysis (SQLite). Table: PS (6,362,620 rows, 11 columns).
+-- Queries 1-5: data cleaning checks. 6-12: analysis.
+
 -- 1. Verify import matches known dataset size (6,362,620 rows)
 SELECT COUNT(*) FROM PS;
 
@@ -22,7 +25,7 @@ SELECT DISTINCT type FROM PS;
 -- 4. Check for impossible numeric values
 SELECT MIN(amount) AS min_amount, MAX(amount) AS max_amount FROM PS;
 
--- 5. Check for exact duplicate rows
+-- 5. Check for exact duplicate rows - may take a while
 SELECT step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig,
        nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud,
        COUNT(*) AS times_seen
@@ -31,34 +34,46 @@ GROUP BY step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig,
          nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud
 HAVING COUNT(*) > 1;
 
--- How many fraud vs non-fraud transactions
+-- 6. How many fraud vs non-fraud transactions
 SELECT isFraud, COUNT(*) AS total
 FROM PS
 GROUP BY isFraud;
 
--- PaySim also has a second flag column - how many did the system itself catch?
+-- 7. How many rows did the built-in flag (isFlaggedFraud, a rule-based flag) mark?
 SELECT isFlaggedFraud, COUNT(*) AS total
 FROM PS
 GROUP BY isFlaggedFraud;
 
--- How good is the built-in flag? (precision and recall)
-SELECT isFlaggedFraud,
-       COUNT(*) AS total_rows,
-       SUM(CASE WHEN isFraud = 1 THEN 1 ELSE 0 END) AS fraud_count
-FROM PS
-GROUP BY isFlaggedFraud;
+-- 8. Built-in flag: precision and recall
+SELECT
+  SUM(CASE WHEN isFlaggedFraud = 1 THEN 1 ELSE 0 END) AS flagged,
+  SUM(CASE WHEN isFlaggedFraud = 1 AND isFraud = 1 THEN 1 ELSE 0 END) AS flagged_and_fraud,
+  SUM(isFraud) AS all_fraud,
+  1.0 * SUM(CASE WHEN isFlaggedFraud = 1 AND isFraud = 1 THEN 1 ELSE 0 END)
+      / SUM(CASE WHEN isFlaggedFraud = 1 THEN 1 ELSE 0 END) AS precision,
+  1.0 * SUM(CASE WHEN isFlaggedFraud = 1 AND isFraud = 1 THEN 1 ELSE 0 END)
+      / SUM(isFraud) AS recall
+FROM PS;
 
--- Fraud count by transaction type
+-- 9. Fraud count by transaction type
 SELECT type,
        COUNT(*) AS total,
        SUM(CASE WHEN isFraud = 1 THEN 1 ELSE 0 END) AS fraud_count
 FROM PS
 GROUP BY type;
 
--- Amount comparison: fraud vs legit
+-- 10. Amount comparison: fraud vs legit
 SELECT isFraud,
        AVG(amount) AS avg_amount,
        MIN(amount) AS min_amount,
        MAX(amount) AS max_amount
 FROM PS
 GROUP BY isFraud;
+
+-- 11. Maximum fraud amount
+SELECT MAX(amount) FROM PS WHERE isFraud = 1;
+
+-- 12. How many fraud rows sit at the maximum fraud amount?
+SELECT SUM(CASE WHEN amount = (SELECT MAX(amount) FROM PS WHERE isFraud = 1) THEN 1 ELSE 0 END) AS at_max,
+       COUNT(*) AS all_fraud
+FROM PS WHERE isFraud = 1;
