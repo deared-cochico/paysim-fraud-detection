@@ -1,6 +1,6 @@
 # PaySim Fraud Detection Analysis
 
-I built this project to practice SQL and Power BI on a real fraud-detection problem: ~6.4 million synthetic mobile money transactions, with the goal of finding actual fraud patterns and testing how well the dataset's own fraud-detection flag performs. Power BI doesn't have a native SQLite connector, so I used a small Python script (pandas + sqlite3) to bridge the two - details in the tooling note below.
+I built this project to practice SQL and Power BI on a realistic fraud-detection problem: ~6.4 million synthetic mobile money transactions, with the goal of finding fraud patterns and testing how well the dataset's own fraud-detection flag performs. Power BI doesn't have a native SQLite connector, so I used a small Python script (pandas + sqlite3) to bridge the two - details in the tooling note below.
 
 ## Dataset
 
@@ -21,7 +21,7 @@ financial fraud. 6,362,620 rows.
 
 Before analyzing anything, I checked:
 - Row count matches the known source size (6,362,620)
-- 0 null values across key columns
+- 0 null values across all 11 columns
 - 0 exact duplicate rows
 - 5 valid transaction types, no unexpected categories
 - No negative transaction amounts
@@ -29,18 +29,13 @@ Before analyzing anything, I checked:
 ## What I Found
 
 1. **Fraud rate:** 8,213 fraudulent transactions out of 6,362,620 total (~0.13%)
-2. **System catch rate:** the dataset's built-in `isFlaggedFraud` flag caught 
-   only 16 of the 8,213 actual fraud cases (~0.19%) - a naive rule-based 
-   flag that mostly doesn't work
+2. **System catch rate:** the built-in isFlaggedFraud flag caught only 16 of the 8,213 fraud cases (~0.19% recall). All 16 it flagged were real fraud (100% precision), so it’s accurate but far too narrow to rely on alone.
 3. **Fraud is type-restricted:** fraud only happens in `CASH_OUT` and 
    `TRANSFER` transactions - zero fraud in `CASH_IN`, `DEBIT`, or `PAYMENT`
 4. **Amount skew:** fraudulent transactions average a higher amount than 
    legitimate ones
 
-**One caveat worth flagging:** every fraud case in the dataset caps at 
-exactly 10,000,000. I don't think this is a real pattern - it looks like 
-an artifact of how the synthetic data was generated, so I'm not presenting 
-it as a genuine finding.
+**One caveat worth flagging:** the largest fraud amounts stop at exactly 10,000,000, and 287 of the 8,213 fraud cases (3.5%) sit exactly at that maximum. I don’t think this is a real pattern. It looks like a limit built into how the synthetic data was generated, so I’m not presenting it as a genuine finding. It likely understates amount-based results (average amounts, totals) at the top end, while the fraud rate, catch rate, and fraud-by-type counts are unaffected.
 
 ## A Note on Tooling
 
@@ -64,10 +59,8 @@ fixed them, is in [`notes.md`](./notes.md).
 
 ## Dashboard
 
-4 visuals: fraud count by transaction type, total fraud cases vs. 
-system-flagged cases, and average transaction amount (fraud vs. legitimate) -
-laid out on one dashboard page with the findings and caveat noted 
-directly on it.
+4 visuals: fraud count by transaction type, two cards (total fraud cases and system-flagged cases), and average transaction amount (fraud vs. legitimate) -
+laid out on one dashboard page with the findings noted directly on it.
 
 ![Dashboard Screenshot](dashboard_screenshot.png)
 
