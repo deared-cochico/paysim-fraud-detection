@@ -1,11 +1,11 @@
 -- PaySim fraud analysis (SQLite)
 -- Table: PS (6,362,620 rows, 11 columns). Simulated data, so results describe
 -- the simulation, not real-world fraud.
--- Four groups: A (1-5) data checks, B (6) how common is fraud,
+-- Four groups: A (1-5, plus follow-ups 4b-4c) data checks, B (6) how common is fraud,
 -- C (7-8) how well the built-in flag works, D (9-12) what fraud looks like.
 
 -- ============================================================
--- GROUP A: Is the data clean? (queries 1-5)
+-- GROUP A: Is the data clean? (queries 1-5, plus follow-ups 4b and 4c)
 -- ============================================================
 
 -- 1. Row count: does the import match the known dataset size?
@@ -33,18 +33,25 @@ FROM PS
 GROUP BY type
 ORDER BY total DESC;
 
--- 4. Impossible or suspicious numeric values
---    (min/max, zero or negative amounts, negative balances, amounts not stored as numbers)
+-- 4. Impossible or suspicious numeric values (zero and negative amounts counted separately)
 SELECT
   MIN(amount) AS min_amount,
   MAX(amount) AS max_amount,
-  SUM(CASE WHEN amount <= 0 THEN 1 ELSE 0 END) AS zero_or_negative_amount,
-  SUM(CASE WHEN oldbalanceOrg < 0 OR newbalanceOrig < 0
-             OR oldbalanceDest < 0 OR newbalanceDest < 0
-           THEN 1 ELSE 0 END) AS negative_balance_rows,
-  SUM(CASE WHEN typeof(amount) NOT IN ('real', 'integer')
-           THEN 1 ELSE 0 END) AS non_numeric_amount
+  SUM(CASE WHEN amount = 0 THEN 1 ELSE 0 END) AS zero_amount,
+  SUM(CASE WHEN amount < 0 THEN 1 ELSE 0 END) AS negative_amount,
+  SUM(CASE WHEN typeof(amount) NOT IN ('real', 'integer') THEN 1 ELSE 0 END) AS non_numeric_amount
 FROM PS;
+
+-- 4b. Follow-up to 4: which transaction types and fraud labels do the zero-amount rows have?
+SELECT type, isFraud, COUNT(*) AS total
+FROM PS
+WHERE amount = 0
+GROUP BY type, isFraud;
+
+-- 4c. Follow-up to 4: do the balances change on the zero-amount rows?
+SELECT type, amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest
+FROM PS
+WHERE amount = 0;
 
 -- 5. Exact duplicate rows (all 11 columns). May take a while on 6.3M rows.
 --    An empty result means no duplicates.
