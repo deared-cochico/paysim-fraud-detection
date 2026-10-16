@@ -88,8 +88,8 @@ FROM PS
 GROUP BY isFlaggedFraud;
 
 -- 8. Built-in flag: precision and recall
---    precision = flagged rows that really are fraud / all flagged rows
---    recall    = fraud the flag caught / all fraud
+--    precision: of all the rows the flag flagged, how many were real fraud?
+--    recall:    of all the real fraud rows, how many did the flag flag?
 SELECT flagged,
        flagged_and_fraud,
        all_fraud,
