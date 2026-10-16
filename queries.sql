@@ -108,13 +108,14 @@ FROM (
 -- ============================================================
 
 -- 9. Fraud by transaction type: counts and fraud rate within each type
+--    Which transaction types does fraud occur in, and how common is it per transaction of each type?
 SELECT type,
-       COUNT(*) AS total,
-       SUM(CASE WHEN isFraud = 1 THEN 1 ELSE 0 END) AS fraud_count,
-       ROUND(100.0 * SUM(CASE WHEN isFraud = 1 THEN 1 ELSE 0 END) / COUNT(*), 4) AS fraud_rate_pct
+       COUNT(*)                                  AS total_rows,
+       SUM(isFraud)                              AS fraud_count,
+       ROUND(100.0 * SUM(isFraud) / COUNT(*), 4) AS fraud_rate_pct
 FROM PS
 GROUP BY type
-ORDER BY fraud_count DESC;
+ORDER BY fraud_count DESC, type;
 
 -- 10. Amount comparison: fraud vs legit (the average can be pulled up by a few large amounts)
 SELECT isFraud,
