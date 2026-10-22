@@ -1,18 +1,33 @@
 # PaySim Fraud Detection Analysis
 
-I built this project to practice SQL and Power BI on a realistic fraud-detection problem: ~6.4 million synthetic mobile money transactions. The goal was to find fraud patterns and test how well the dataset's own fraud flag performs. Power BI doesn't have a native SQLite connector, so I used a small Python script (pandas + sqlite3) to bridge the two. Details are in the tooling note below.
+I used SQL to explore and clean about 6.4 million synthetic mobile-money transactions, then built a Power BI dashboard on top. The goal was to find fraud patterns and test how well the dataset's built-in fraud flag performs.
+
+## Key Findings
+
+- **Fraud is rare:** 8,213 of 6,362,620 transactions (~0.13%).
+- **Fraud appears only in two types:** `CASH_OUT` and `TRANSFER`. There is no fraud in `CASH_IN`, `DEBIT`, or `PAYMENT`.
+- **TRANSFER is riskier per transaction:** about 0.77% of TRANSFER transactions are fraud, versus about 0.18% for CASH_OUT, roughly four times higher. Both types have nearly the same fraud count (4,097 and 4,116). The difference comes from TRANSFER having far fewer transactions.
+- **The built-in flag is precise but narrow:** it caught 16 of 8,213 frauds. All 16 flags were real fraud, but it misses about 99.8% of fraud.
+- **Fraud amounts are higher on average:** about 1,467,967 for fraud versus 178,197 for legitimate transactions, roughly 8 times higher.
+
+**Caveat on amounts:** 287 of the 8,213 fraud rows (3.5%) sit at exactly 10,000,000, the largest fraud amount. This looks like a ceiling built into the synthetic data, not a real pattern. The real amounts behind those rows could be higher, so the averages above are likely lower bounds. I kept all fraud rows in the averages. Excluding the 287 capped rows would lower the fraud average by about 20%, which shows the averages are sensitive to the cap.
 
 ## Dataset
 
-[PaySim](https://www.kaggle.com/datasets/ealaxi/paysim1) - a synthetic dataset simulating mobile money transactions, built to resemble real financial fraud. 6,362,620 rows, 11 columns. Because the data is simulated, my results describe this dataset, not real-world fraud (see Limits).
+[PaySim](https://www.kaggle.com/datasets/ealaxi/paysim1): a synthetic dataset simulating mobile-money transactions, built to resemble real financial fraud. It has 6,362,620 rows and 11 columns. Because the data is simulated, these results describe this dataset, not real-world fraud.
 
-## Tools I Used
+## Definitions
 
-- **SQLite** - local database
-- **DBeaver** - SQL client for exploration and cleaning
-- **Python** (pandas, sqlite3) - connected Power BI to the database (see the tooling note below for why)
-- **Power BI Desktop** - the dashboard
-- **LibreOffice Calc** - a pivot table summary artifact
+- **Mobile money:** sending, receiving, and storing money with a phone, usually through an app or SMS, instead of a bank account or card. GCash and Maya are examples.
+- **CASH_IN:** depositing physical cash into a mobile-money wallet.
+- **CASH_OUT:** converting a wallet balance into physical cash.
+- **TRANSFER:** sending money from one wallet to another.
+- **isFraud:** the dataset's answer column. 1 means fraud, 0 means legitimate.
+- **isFlaggedFraud:** the dataset's built-in rule-based flag. It is not a model I trained.
+- **Precision:** of the transactions the flag marked, the share that were real fraud.
+  Precision = (isFlaggedFraud = 1 AND isFraud = 1) ÷ (isFlaggedFraud = 1)
+- **Recall:** of all real fraud, the share the flag caught.
+  Recall = (isFlaggedFraud = 1 AND isFraud = 1) ÷ (isFraud = 1)
 
 ## Questions I Asked
 
@@ -20,60 +35,67 @@ The queries in `queries.sql` are grouped by the question each one answers:
 
 - **A. Is the data clean?** Queries 1-5, plus follow-up checks 4b and 4c
 - **B. How common is fraud?** Query 6
-- **C. How well does the built-in fraud flag work?** Queries 7-8
-- **D. What does fraud look like, by transaction type and amount?** Queries 9-12
+- **C. How well does the built-in flag work?** Queries 7-8
+- **D. What does fraud look like, by type and amount?** Queries 9-12
 
 ## Data Cleaning
 
-Before analyzing anything, I checked (query numbers in brackets):
+Before analyzing, I checked (query numbers in brackets):
 
 - Row count matches the known source size, 6,362,620 (Q1)
 - 0 null values across all 11 columns (Q2)
 - 5 valid transaction types, no unexpected categories (Q3)
-- No negative amounts and every amount stored as a number, but 16 rows have an amount of exactly 0 (Q4)
+- No negative amounts, and every amount is stored as a number, but 16 rows have an amount of exactly 0 (Q4)
 - 0 exact duplicate rows (Q5)
 
-**Zero-amount rows:** all 16 are `CASH_OUT`, all 16 are labeled fraud, and their balances don't change (Q4b, Q4c). I don't know why the simulation produces them. I left them in instead of deleting them, and I'm not treating them as a real-world pattern.
-
-## What I Found
-
-1. **Fraud rate:** 8,213 fraudulent transactions out of 6,362,620 total (~0.13%) (Q6)
-2. **Built-in flag:** the `isFlaggedFraud` flag caught only 16 of the 8,213 fraud cases (~0.19% recall), so it missed about 99.8% of fraud. All 16 it flagged were real fraud (100% precision), so it is right when it flags but far too narrow to rely on alone (Q7-Q8)
-3. **Fraud is type-restricted in this dataset:** fraud only happens in `CASH_OUT` and `TRANSFER` transactions, with zero fraud in `CASH_IN`, `DEBIT`, or `PAYMENT` (Q9)
-4. **Amount skew:** fraudulent transactions average a higher amount than legitimate ones (Q10)
-
-**One caveat worth flagging:** the largest fraud amounts stop at exactly 10,000,000, and 287 of the 8,213 fraud cases (3.5%) sit exactly at that maximum (Q11, Q12). I don't think this is a real pattern. It looks like a limit built into how the synthetic data was generated, so I'm not presenting it as a genuine finding. It likely understates amount-based results (average amounts, totals) at the top end, while the fraud rate, catch rate, and fraud-by-type counts are unaffected.
+**Zero-amount rows:** all 16 are `CASH_OUT`, all 16 are labeled fraud, and their balances don't change (Q4b, Q4c). I don't know why the simulation produces them. I kept them instead of deleting them, and I don't treat them as a real-world pattern.
 
 ## Limits
 
-- **Simulated data.** Findings describe this dataset, not real-world fraud. For example, fraud appearing only in two transaction types is a property of how the data was generated.
-- **The flag is a simple built-in rule,** not a model I trained. I evaluated it, but I did not build a fraud detector.
-- **Fraud is only ~0.13% of rows,** so overall accuracy would be misleading. That is why I looked at precision and recall instead.
+- **Simulated data.** Findings describe this dataset, not real-world fraud. For example, fraud appearing in only two transaction types is a property of how the data was generated, not something I can confirm about real systems.
+- **The flag is a simple built-in rule,** not a model. I evaluated it, but I did not build a fraud detector.
+- **Fraud is about 0.13% of rows,** so overall accuracy would be misleading. That's why I used precision and recall instead.
+- **The 10,000,000 ceiling** affects amount-based results at the top end, so the amount averages are likely lower bounds. Fraud rates, catch rates, and fraud-by-type counts are not affected.
 - **No time analysis.** I did not analyze fraud over time (the `step` column).
+
+## Tools
+
+- **SQLite:** local database
+- **DBeaver:** SQL client for exploration and cleaning
+- **Python (pandas, sqlite3):** connects Power BI to the database (see the tooling note below)
+- **Power BI Desktop:** dashboard
+- **LibreOffice Calc:** pivot table summary
 
 ## A Note on Tooling
 
-Power BI doesn't have an official native connector for SQLite. The only SQLite ODBC driver I could find was hosted on a site with an outdated, flagged SSL certificate, so instead of installing unverified third-party software, I connected through Power BI's built-in Python script connector (pandas + sqlite3).
+Power BI has no official native connector for SQLite. The only SQLite ODBC driver I found was hosted on a site with an outdated, flagged SSL certificate, so instead of installing unverified third-party software, I connected through Power BI's built-in Python script connector (pandas + sqlite3).
 
-Full writeup of that decision, plus the bugs I hit along the way and how I fixed them, is in [`notes.md`](./notes.md).
+Full details, plus the bugs I hit and how I fixed them, are in [`notes.md`](./notes.md).
+
+## How to Reproduce
+
+1. Download the PaySim CSV from the Kaggle link above.
+2. Import it into SQLite as a table named `PS` (for example, with DBeaver's import tool).
+3. Run `queries.sql` in DBeaver. Each query is numbered and grouped as above.
 
 ## Repo Contents
 
-- `queries.sql` - 12 SQL queries plus 2 follow-up checks (4b, 4c), grouped A to D as above
-- `notes.md` - Technical decisions, issues encountered, and resolutions
-- `data/` - Exported query results powering the dashboard (4 CSVs)
-- `paysim_fraud_dashboard.pbix` - Power BI dashboard (4 visuals)
-- `fraud_by_type_pivot.xlsx` - Pivot table summary
-- `dashboard_screenshot.png` - Preview image of the finished dashboard
+- `queries.sql`: 12 SQL queries plus 2 follow-up checks (4b, 4c)
+- `notes.md`: technical decisions, issues, and resolutions
+- `data/`: exported query results that power the dashboard (4 CSVs)
+- `paysim_fraud_dashboard.pbix`: Power BI dashboard (4 visuals)
+- `fraud_by_type_pivot.xlsx`: pivot table summary
+- `dashboard_screenshot.png`: preview of the finished dashboard
 
 ## Dashboard
 
-4 visuals: fraud count by transaction type, two cards (total fraud cases and system-flagged cases), and average transaction amount (fraud vs. legitimate), laid out on one dashboard page with the findings noted directly on it.
+Four visuals on one page: fraud count by transaction type, two cards (total fraud cases and system-flagged cases), and average transaction amount, fraud versus legitimate.
 
 ![Dashboard Screenshot](dashboard_screenshot.png)
 
 ## Future Improvements
 
-- Dual-axis scaling on the type chart, so the fraud_count bars aren't visually dwarfed by the total-transaction bars
+- Dual-axis scaling on the type chart, so the fraud bars aren't dwarfed by the total-transaction bars
+- Add the 10,000,000 ceiling caveat to the dashboard itself
 - Fraud over time, using the `step` column
-- A balance consistency check: does the change in each account's balance match the transaction amount?
+- A balance consistency check: does each account's balance change match the transaction amount?
