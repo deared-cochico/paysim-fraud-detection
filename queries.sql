@@ -117,7 +117,7 @@ FROM PS
 GROUP BY type
 ORDER BY fraud_count DESC, type;
 
--- 10. Amount comparison: fraud vs legit (the average can be pulled up by a few large amounts)
+-- 10. Average amount, fraud vs legit (fraud averages are pulled up by rows at the 10M cap; see Q11-12)
 SELECT isFraud,
        COUNT(*) AS total,
        ROUND(AVG(amount), 2) AS avg_amount,
