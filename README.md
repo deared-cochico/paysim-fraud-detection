@@ -10,7 +10,7 @@ I used SQL to explore and clean about 6.4 million synthetic mobile-money transac
 - **The built-in flag is precise but narrow:** it caught 16 of 8,213 frauds. All 16 flags were real fraud, but it misses about 99.8% of fraud.
 - **Fraud amounts are higher on average:** about 1,467,967 for fraud versus 178,197 for legitimate transactions, roughly 8 times higher.
 
-**Caveat on amounts:** 287 of the 8,213 fraud rows (3.5%) sit at exactly 10,000,000, the largest fraud amount. This looks like a ceiling built into the synthetic data, not a real pattern. The real amounts behind those rows could be higher, so the averages above are likely lower bounds. I kept all fraud rows in the averages. Excluding the 287 capped rows would lower the fraud average by about 20%, which shows the averages are sensitive to the cap.
+**Caveat on amounts:** 287 of the 8,213 fraud rows (3.5%) sit at exactly 10,000,000, the largest fraud amount. The senders' starting balances are large enough to cover those amounts, so the balance data doesn't rule them out. The value is far above the wallet limits I checked (for example, a Fully Verified GCash account can hold up to ₱1,000,000), so it is probably a generator artifact. The fraud averages above may be understated. Excluding the 287 capped rows would lower the fraud average by about 20%, which shows the averages are sensitive to the cap.
 
 ## Dataset
 
