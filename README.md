@@ -95,7 +95,7 @@ Four visuals on one page: fraud count by transaction type, two cards (total frau
 
 ## Future Improvements
 
-- Dual-axis scaling on the type chart, so the fraud bars aren't dwarfed by the total-transaction bars
+- Chart the fraud rate per type instead of raw counts, so the TRANSFER and CASH_OUT difference is visible on one simple scale.
 - Add the 10,000,000 ceiling caveat to the dashboard itself
 - Fraud over time, using the `step` column
 - A balance consistency check: does each account's balance change match the transaction amount?
