@@ -77,10 +77,12 @@ Full details, plus the bugs I hit and how I fixed them, are in [`notes.md`](./no
 1. Download the PaySim CSV from the Kaggle link above.
 2. Import it into SQLite as a table named `PS` (for example, with DBeaver's import tool).
 3. Run `queries.sql` in DBeaver. Each query is numbered and grouped as above.
+4. To rebuild the dashboard, connect Power BI with scripts/sqlite_connector.py.
 
 ## Repo Contents
 
 - `queries.sql`: 12 SQL queries plus 2 follow-up checks (4b, 4c)
+- `scripts/sqlite_connector.py`: Power BI Python script connector
 - `notes.md`: technical decisions, issues, and resolutions
 - `data/`: exported query results that power the dashboard (4 CSVs)
 - `paysim_fraud_dashboard.pbix`: Power BI dashboard (4 visuals)
