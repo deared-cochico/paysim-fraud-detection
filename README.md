@@ -37,6 +37,7 @@ The queries in `queries.sql` are grouped by the question each one answers:
 - **B. How common is fraud?** Query 6
 - **C. How well does the built-in flag work?** Queries 7-8
 - **D. What does fraud look like, by type and amount?** Queries 9-12
+- **E. How do fraud amounts compare, and how much does the cap matter?** Query 13
 
 ## Data Cleaning
 
@@ -81,7 +82,7 @@ Full details, plus the bugs I hit and how I fixed them, are in [`notes.md`](./no
 
 ## Repo Contents
 
-- `queries.sql`: 12 SQL queries plus 2 follow-up checks (4b, 4c)
+- `queries.sql`: 13 numbered queries, follow-up checks 4b and 4c, and fraud amount checks (13a–13c)
 - `scripts/sqlite_connector.py`: Power BI Python script connector
 - `notes.md`: technical decisions, issues, and resolutions
 - `data/`: exported query results that power the dashboard (4 CSVs)
