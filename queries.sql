@@ -136,3 +136,20 @@ SELECT SUM(CASE WHEN amount = (SELECT MAX(amount) FROM PS WHERE isFraud = 1) THE
        COUNT(*) AS all_fraud
 FROM PS
 WHERE isFraud = 1;
+
+-- 13. Verify README claims: fraud amount averages and the 10,000,000 cap
+
+-- Averages by label (README: legitimate 178,197; fraud 1,467,967)
+SELECT isFraud, AVG(amount) AS avg_amount
+FROM PS
+GROUP BY isFraud;
+
+-- Fraud rows at the cap (README: 287)
+SELECT COUNT(*) AS capped_fraud
+FROM PS
+WHERE isFraud = 1 AND amount = 10000000;
+
+-- Fraud average without capped rows (README: 1,159,023, about 21% lower)
+SELECT AVG(amount) AS avg_fraud_excl_cap
+FROM PS
+WHERE isFraud = 1 AND amount < 10000000;
