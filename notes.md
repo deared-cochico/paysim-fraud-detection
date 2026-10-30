@@ -1,30 +1,19 @@
+# Notes: PaySim Fraud Detection Analysis
+
 ## Technical Decisions
 
-**Why I used a Python script instead of ODBC for the Power BI connection**
-I looked into connecting Power BI to SQLite the standard way, but the only 
-SQLite ODBC driver I could find was hosted on a site with an outdated, 
-flagged SSL certificate. I didn't want to install unverified third-party 
-software just to get a connection working, so I used Power BI's built-in 
-Python script connector instead (pandas + sqlite3) - same result, no 
-untrusted driver needed.
+**Python connector instead of ODBC.** I looked into connecting Power BI to SQLite the standard way, but the only SQLite ODBC driver I could find was hosted on a site with an outdated, flagged SSL certificate. I didn't want to install unverified third-party software, so I used Power BI's built-in Python script connector instead (pandas + sqlite3). It gives the same result without an untrusted driver. The script is in `scripts/sqlite_connector.py`.
+
+**Database path set at the top of the script.** The path is one variable, `DB_PATH`, which each user changes to match their setup. The script checks that the file exists before connecting, because `sqlite3.connect()` creates a new, empty database when the file is missing.
+
+**Conversion helper.** The numeric columns are converted by a small function, so only the four tables Power BI should load are defined at the top level of the script.
 
 ## Issues I Ran Into
 
-1. **Wrong DB path silently created an empty database.** I didn't realize 
-   `sqlite3.connect()` doesn't throw an error if the file doesn't exist - 
-   it just creates a new, empty one at that path. My first few queries 
-   kept failing with "no such table," which looked like a bad query, but 
-   it was actually a path problem. Fixed it by copying the exact file path 
-   from DBeaver's connection settings and double-checking the real table 
-   name against `sqlite_master`.
+1. **Wrong database path created an empty database.** `sqlite3.connect()` creates a new, empty database when the path doesn't point to an existing file. My queries then failed with "no such table," which looked like a query error but was a path error. I fixed it by copying the exact path from DBeaver's connection settings and checking the table name in `sqlite_master`. The script now checks that the file exists before connecting.
 
-2. **Numeric columns came in as text.** The COUNT()/SUM() results from the 
-   Python connector loaded into Power BI typed as text, so I couldn't use 
-   Sum on them. Fixed in Power Query by manually setting the column types 
-   to Whole Number / Decimal Number.
+2. **Numeric columns came in as text.** The COUNT() and SUM() results from the Python connector loaded into Power BI as text, so I couldn't sum them. I fixed the column types in Power Query (Transform data), setting Whole Number and Decimal Number. The connector script now converts these columns with `pd.to_numeric`, so the repo matches the dashboard.
 
-3. **Fraud bars looked almost invisible next to the totals.** Not actually 
-   a bug - fraud is only about 0.13% of all transactions, so it's always 
-   going to look tiny next to the total count at that scale. I added a 
-   separate fraud-only chart so the pattern across transaction types is 
-   actually visible.
+3. **Fraud bars looked almost invisible next to the totals.** Fraud is about 0.13% of transactions, so fraud bars are tiny beside the total counts. I added a separate fraud-only chart so the pattern across transaction types is visible. Counts still hide the rate difference: TRANSFER and CASH_OUT have nearly equal fraud counts, but TRANSFER is about four times riskier per transaction. The next step is a fraud-rate chart.
+
+4. **Duplicate table in Power BI's Navigator.** A loop variable named `df` was left at the top level of the script, so Navigator listed a duplicate of `amount_comparison`. I fixed it by moving the conversion into a function, so only the four intended tables are defined at the top level.
