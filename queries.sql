@@ -137,19 +137,25 @@ SELECT SUM(CASE WHEN amount = (SELECT MAX(amount) FROM PS WHERE isFraud = 1) THE
 FROM PS
 WHERE isFraud = 1;
 
--- 13. Verify README claims: fraud amount averages and the 10,000,000 cap
+-- 13. Fraud amount checks: average by label, capped rows, and fraud average without the cap
 
--- Averages by label (README: legitimate 178,197; fraud 1,467,967)
-SELECT isFraud, AVG(amount) AS avg_amount
+-- 13a. Average amount by label (expected: 0 = 178,197.04; 1 = 1,467,967.30)
+SELECT isFraud,
+       ROUND(AVG(amount), 2) AS avg_amount
 FROM PS
 GROUP BY isFraud;
 
--- Fraud rows at the cap (README: 287)
-SELECT COUNT(*) AS capped_fraud
+-- 13b. Fraud rows at the 10,000,000 maximum (expected: 287)
+SELECT COUNT(*) AS capped_fraud_rows
 FROM PS
-WHERE isFraud = 1 AND amount = 10000000;
+WHERE isFraud = 1
+  AND amount = 10000000;
 
--- Fraud average without capped rows (README: 1,159,023, about 21% lower)
-SELECT AVG(amount) AS avg_fraud_excl_cap
+-- 13c. Fraud average without the capped rows, and percent change from the full fraud average
+--      (expected: 1,159,022.89 and about -21%)
+SELECT ROUND(AVG(amount), 2) AS avg_fraud_excl_cap,
+       ROUND(100.0 * (AVG(amount) - (SELECT AVG(amount) FROM PS WHERE isFraud = 1))
+             / (SELECT AVG(amount) FROM PS WHERE isFraud = 1), 2) AS pct_change
 FROM PS
-WHERE isFraud = 1 AND amount < 10000000;
+WHERE isFraud = 1
+  AND amount < 10000000;
