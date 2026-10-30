@@ -10,7 +10,11 @@ I used SQL to explore and clean about 6.4 million synthetic mobile-money transac
 - **The built-in flag is precise but narrow:** it caught 16 of 8,213 frauds. All 16 flags were real fraud, but it misses about 99.8% of fraud.
 - **Fraud amounts are higher on average:** about 1,467,967 for fraud versus 178,197 for legitimate transactions, roughly 8 times higher.
 
-**Caveat on amounts:** 287 of the 8,213 fraud rows (3.5%) sit at exactly 10,000,000, the largest fraud amount. The senders' starting balances are large enough to cover those amounts, so the balance data doesn't rule them out. The value is far above the wallet limits I checked (for example, a Fully Verified GCash account can hold up to ₱1,000,000), so it is probably a generator artifact. The fraud averages above may be understated. Excluding the 287 capped rows would lower the fraud average by about 20%, which shows the averages are sensitive to the cap.
+## Caveat on Amounts
+
+Fraud amounts pile up at exactly 10,000,000: 287 of the 8,213 fraud rows sit at that value, and the maximum fraud amount is 10,000,000. Legitimate amounts go up to about 92 million, so the pattern applies to fraud rows only. The cause isn't documented.
+
+The capped rows sit above the fraud average, so they raise it. Excluding them lowers the fraud average from 1,467,967 to 1,159,023, about 21%. Fraud rates, catch rates, and fraud-by-type counts are not affected. Query 13 in `queries.sql` reproduces these figures.
 
 ## Dataset
 
@@ -37,7 +41,7 @@ The queries in `queries.sql` are grouped by the question each one answers:
 - **B. How common is fraud?** Query 6
 - **C. How well does the built-in flag work?** Queries 7-8
 - **D. What does fraud look like, by type and amount?** Queries 9-12
-- **E. How do fraud amounts compare, and how much does the cap matter?** Query 13
+- **E. How do fraud amounts compare, and what does the 10,000,000 pile-up change?** Query 13
 
 ## Data Cleaning
 
@@ -56,7 +60,7 @@ Before analyzing, I checked (query numbers in brackets):
 - **Simulated data.** Findings describe this dataset, not real-world fraud. For example, fraud appearing in only two transaction types is a property of how the data was generated, not something I can confirm about real systems.
 - **The flag is a simple built-in rule,** not a model. I evaluated it, but I did not build a fraud detector.
 - **Fraud is about 0.13% of rows,** so overall accuracy would be misleading. That's why I used precision and recall instead.
-- **The 10,000,000 ceiling** affects amount-based results at the top end, so the amount averages are likely lower bounds. Fraud rates, catch rates, and fraud-by-type counts are not affected.
+- **Amount pile-up:** fraud amounts cluster at 10,000,000 with no documented cause, which affects fraud amount results only.
 - **No time analysis.** I did not analyze fraud over time (the `step` column).
 
 ## Tools
@@ -99,6 +103,6 @@ Four visuals on one page: fraud count by transaction type, two cards (total frau
 ## Future Improvements
 
 - Chart the fraud rate per type instead of raw counts, so the TRANSFER and CASH_OUT difference is visible on one simple scale.
-- Add the 10,000,000 ceiling caveat to the dashboard itself
+- Add the 10,000,000 pile-up to the dashboard, with the caveat.
 - Fraud over time, using the `step` column
 - A balance consistency check: does each account's balance change match the transaction amount?
